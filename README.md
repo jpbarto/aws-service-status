@@ -5,15 +5,15 @@ Python script for parsing and reporting on AWS Service Health Dashboard data
 
 ### Get a high level summary
 ```bash
-pip install -r requirements.txt
-python awsstatusdata.py
+$ pip install -r requirements.txt
+$ python awsstatusdata.py
 109 known services and 17 regions
 0 current issues, 174 archived issues for 368 days
 ```
 
 ### Specify the service and the region
 ```bash
-python awsstatusdata.py lambda london
+$ python awsstatusdata.py lambda london
 109 known services and 17 regions
 0 current issues, 174 archived issues for 368 days
 0 current issues, 0 archived issues for lambda in eu-west-2
@@ -21,6 +21,7 @@ python awsstatusdata.py lambda london
 
 ### Specify the region
 ```bash
+$ python awsstatusdata.py london
 109 known services and 17 regions
 0 current issues, 174 archived issues for 368 days
 0 current issues, 1 archived issues for all services in eu-west-2
@@ -62,7 +63,7 @@ Archived Issues:
 
 ### Specify the service
 ```bash
-python awsstatusdata.py lambda
+$ python awsstatusdata.py lambda
 109 known services and 17 regions
 0 current issues, 174 archived issues for 368 days
 0 current issues, 4 archived issues for lambda in all regions
