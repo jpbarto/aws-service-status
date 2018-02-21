@@ -1,0 +1,48 @@
+{
+  "session": {
+    "new": true,
+    "sessionId": "SessionId.83836963-bc26-4bcb-8006-78bd9d9e1d2e",
+    "application": {
+      "applicationId": "amzn1.ask.skill.8574e939-31a4-4223-a686-f75d2a16e34e"
+    },
+    "attributes": {},
+    "user": {
+      "userId": "amzn1.ask.account.AEB5IWAOTB2TLUCIAS6KZT7K6PQXNCCXLKCKXAEZFNZVP5ZIRKHWI7LXOGMM6V735Q3NBOH7IFWI3YF7OBACBAK2GJ55RHEKYRFTCA7V3ELU64QUUNRI2V2LNX66LTPAN5DUQ4MJGKURM6HGECX7BLSMABG4ONPPXJ3UC2PN5JYF5VHGBHXMHVAZCO4ZY5EWJJEHWQ2H6CK3D3Y"
+    }
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "EdwRequestId.8747067f-065e-4675-a18a-7823a1522844",
+    "intent": {
+      "name": "StatusIntent",
+      "slots": {
+        "service": {
+          "name": "service",
+          "value": "lambda"
+        },
+        "region": {
+          "name": "region"
+        }
+      }
+    },
+    "locale": "en-GB",
+    "timestamp": "2017-12-23T00:12:58Z"
+  },
+  "context": {
+    "AudioPlayer": {
+      "playerActivity": "IDLE"
+    },
+    "System": {
+      "application": {
+        "applicationId": "amzn1.ask.skill.8574e939-31a4-4223-a686-f75d2a16e34e"
+      },
+      "user": {
+        "userId": "amzn1.ask.account.AEB5IWAOTB2TLUCIAS6KZT7K6PQXNCCXLKCKXAEZFNZVP5ZIRKHWI7LXOGMM6V735Q3NBOH7IFWI3YF7OBACBAK2GJ55RHEKYRFTCA7V3ELU64QUUNRI2V2LNX66LTPAN5DUQ4MJGKURM6HGECX7BLSMABG4ONPPXJ3UC2PN5JYF5VHGBHXMHVAZCO4ZY5EWJJEHWQ2H6CK3D3Y"
+      },
+      "device": {
+        "supportedInterfaces": {}
+      }
+    }
+  },
+  "version": "1.0"
+}
