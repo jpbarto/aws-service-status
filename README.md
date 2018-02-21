@@ -2,12 +2,65 @@
 Python script for parsing and reporting on AWS Service Health Dashboard data
 
 ## To Run from the CLI
+
+### Get a high level summary
 ```bash
 pip install -r requirements.txt
 python awsstatusdata.py
 109 known services and 17 regions
 0 current issues, 174 archived issues for 368 days
 ```
+
+### Specify the service and the region
+```bash
+python awsstatusdata.py lambda london
+109 known services and 17 regions
+0 current issues, 174 archived issues for 368 days
+0 current issues, 0 archived issues for lambda in eu-west-2
+```
+
+### Specify the region
+```bash
+109 known services and 17 regions
+0 current issues, 174 archived issues for 368 days
+0 current issues, 1 archived issues for all services in eu-west-2
+
+Archived Issues:
+----------------
+{'date': 1490373984,
+ 'description': ' 9:46 AM PDT\xa0We are temporarily running low on t2.micro '
+                'instance capacity in the EU-WEST-2 Region. All other instance '
+                'types are available. For customers that do receive an '
+                'Insufficient Capacity Error for an instance launch request, '
+                'we recommend using t2.nano, t2.small, t2.medium, t2.large or '
+                'any of the other instance families. We are working to '
+                'increase t2.micro instance capacity and expect to be back to '
+                'normal levels within the next few hours. Instances that are '
+                'currently running are not affected.12:10 PM PDT\xa0We have '
+                'added additional t2.micro instance capacity in the EU-WEST-2 '
+                'Region and are now successfully provisioning launches of new '
+                't2.micro instances. Until t2.micro instance capacity returns '
+                'to normal levels, some customers may continue to see '
+                'Insufficient Capacity Errors for new launch requests. In '
+                'those cases, we continue to recommend using t2.nano, '
+                't2.small, t2.medium, t2.large or any of the other instance '
+                'families. All other instance families (C4, D2, I3, M4, R4 and '
+                'X1) and instances that are currently running remain '
+                'unaffected. We expect t2.micro instance capacity to return to '
+                'normal levels within the next hour. 1:08 PM PDT\xa0We can '
+                'confirm that t2.micro instance capacity has now returned to '
+                'normal levels in the EU-WEST-2 Region and we are no longer '
+                'returning Insufficient Capacity Errors for new t2.micro '
+                'instance launch requests. The issue has been resolved and the '
+                'service is operating normally. ',
+ 'region_code': 'eu-west-2',
+ 'region_name': 'London',
+ 'service_code': 'ec2',
+ 'service_name': 'Amazon Elastic Compute Cloud',
+ 'summary': '[RESOLVED] t2.micro Instance Capacity'}
+```
+
+### Specify the service
 ```bash
 python awsstatusdata.py lambda
 109 known services and 17 regions
@@ -108,9 +161,4 @@ Archived Issues:
  'service_name': 'AWS Lambda',
  'summary': '[RESOLVED] Increased Error Rates'}
 ```
-```bash
-python awsstatusdata.py lambda london
-109 known services and 17 regions
-0 current issues, 174 archived issues for 368 days
-0 current issues, 0 archived issues for lambda in eu-west-2
-```
+
