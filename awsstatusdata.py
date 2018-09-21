@@ -54,6 +54,12 @@ def in_service_map (value):
     value = value.lower ()
     return value in service_map or value in service_map.values ()
 
+def print_service_map ():
+    print ("Showing {} known services:".format (len(service_map)))
+    print ("\tShort Name                     Long Name")
+    for k in service_map.keys ():
+        print ("\t{} {}".format (service_map[k].ljust(30), k))
+
 def get_service_code (value):
     value = str(value).lower ()
     if value in service_map:
@@ -65,6 +71,12 @@ def get_service_code (value):
 def in_region_map (value):
     value = value.lower ()
     return value in region_map or value in region_map.values ()
+
+def print_region_map ():
+    print ("Showing {} known regions:".format (len(region_map)))
+    print ("\tRegion Name          Region Code")
+    for k in region_map.keys ():
+        print ("\t{} {}".format (k.ljust(20), region_map[k]))
 
 def get_region_code (value):
     value = str(value).lower ()
@@ -154,9 +166,24 @@ if __name__ == '__main__':
     print ("{0} known services and {1} regions".format (len(service_map), len(region_map)))
     print ("{} current issues, {} archived issues for {} days".format (len(current_issues), len(archived_issues), archive_length))
 
+    if len(sys.argv) <= 1:
+        print ("For more specific detail please specify a service name, region name, or both.")
+        print ("For a list of services specify 'services', for a list of regions specify 'regions'.")
+        print ("Example Usage:")
+        print ("\t$> {} services".format (sys.argv[0]))
+        print ("\t$> {} lambda eu-west-1".format (sys.argv[0]))
+
     if len(sys.argv) > 1:
         service = None
-        region = None 
+        region = None
+
+        if sys.argv[1] == 'regions':
+            print_region_map ()
+            sys.exit (0)
+
+        if sys.argv[1] == 'services':
+            print_service_map ()
+            sys.exit (0)
 
         if in_service_map (sys.argv[1]):
             service = sys.argv[1]
