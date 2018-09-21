@@ -5,8 +5,9 @@ Python script for parsing and reporting on AWS Service Health Dashboard data
 
 ### Get a high level summary
 ```bash
-$ pip install -r requirements.txt
-$ python awsstatusdata.py
+$ pipenv --python 3.6
+$ pipenv install
+$ pipenv run python awsstatusdata.py
 109 known services and 17 regions
 0 current issues, 174 archived issues for 368 days
 ```
