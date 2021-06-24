@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 
 """
 Retrieve the latest service health data from https://status.aws.amazon.com/data.json and
@@ -11,9 +11,12 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from time import time
+from datetime import datetime
 import logging
 import sys
 import pprint
+import json
+from dateutil.parser import parse as dateutil_parse
 
 logger = logging.getLogger('AWSStatusSkill')
 logger.setLevel (logging.DEBUG)
@@ -99,16 +102,34 @@ def format_issue (issue):
 
     (service_code, region_code) = service_code_pattern.match (issue['service']).groups ()
     summary = issue['summary']
-    date = int(issue['date'])
+    unixdate = int(issue['date'])
+    utcdate = datetime.utcfromtimestamp(unixdate).strftime('%Y-%m-%d %H:%M:%S')
     description = BeautifulSoup (issue['description'], 'html.parser').get_text ()
+    timeline = []
+    soup = BeautifulSoup (issue['description'], 'html.parser')
+    mintimestamp = None
+    maxtimestamp = None
+    for div in soup.find_all('div'):
+        span = div.span
+        span.extract ()
+        timeline.append ((span.text.strip(), div.text.strip()))
+        eventDatetime = dateutil_parse (span.text.strip())
+        if mintimestamp is None or eventDatetime < mintimestamp:
+            mintimestamp = eventDatetime
+        if maxtimestamp is None or eventDatetime > maxtimestamp:
+            maxtimestamp = eventDatetime
+    duration = int(maxtimestamp.timestamp () - mintimestamp.timestamp ())/60
 
-    return {'service_name': service_name, 
+    return {'service_name': service_name,
             'service_code': service_code,
             'region_name': region_name,
             'region_code': region_code,
-            'summary': summary, 
-            'date': date,
-            'description': description}
+            'summary': summary,
+            'timestamp': unixdate,
+            'date': utcdate,
+            'description': description,
+            'timeline': timeline,
+            'duration_mins': duration}
 
 def refresh_issues ():
     global archive_length
@@ -206,15 +227,12 @@ if __name__ == '__main__':
         if service is not None:
             service_label = get_service_code (service)
 
-        
         print ("{} current issues, {} archived issues for {} in {}".format (len (issues['current']), len(issues['archived']), service_label, region_label))
         if len(issues['current']) > 0:
             print ("\nCurrent Issues:")
             print ("---------------")
-            for issue in issues['current']:
-                pprint.pprint (issue)
+            print (json.dumps(issues['current'], sort_keys = True, indent = 4))
         if len(issues['archived']) > 0:
             print ("\nArchived Issues:")
             print ("----------------")
-            for issue in issues['archived']:
-                pprint.pprint (issue)
+            print (json.dumps(issues['archived'], sort_keys = True, indent = 4))
