@@ -70,7 +70,6 @@ def get_service_code (value):
     raise ValueError ('Specified value not foundin map')
 
 def in_region_map (value):
-    value = value.lower ()
     return value in region_map or value in region_map.values ()
 
 def print_region_map ():
@@ -80,7 +79,6 @@ def print_region_map ():
         print ("\t{} {}".format (k.ljust(20), region_map[k]))
 
 def get_region_code (value):
-    value = str(value).lower ()
     if value in region_map:
         return region_map[value]
     if value in region_map.values ():
@@ -171,6 +169,8 @@ def get_service_issues (service = None, region = None):
             return issue['region_name'].lower () == region or issue['region_code'].lower () == region
         
         return False
+
+    print("getting issues for {} in {}".format (service, region))
 
     current = [issue for issue in current_issues if issue_matches (issue)]
     current.sort (key = lambda x: x['date'], reverse = True)
