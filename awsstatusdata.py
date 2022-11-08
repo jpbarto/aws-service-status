@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Retrieve the latest service health data from https://status.aws.amazon.com/data.json and
@@ -17,11 +17,16 @@ import sys
 import pprint
 import json
 from dateutil.parser import parse as dateutil_parse
+from dateutil import tz as dateutil_tz
+# dateutil needs to be configured to recognize PST / PDT as West Coast time zones
+PACIFIC = dateutil_tz.gettz("America/Los_Angeles")
+timezone_info = {"PST": PACIFIC, "PDT": PACIFIC}
 
 logger = logging.getLogger('AWSStatusSkill')
 logger.setLevel (logging.DEBUG)
 
 AWS_DATA_URL = 'https://status.aws.amazon.com/data.json'
+AWS_SERVICE_URL = 'https://status.aws.amazon.com/services.json'
 
 current_issues = []
 archived_issues = []
@@ -31,27 +36,20 @@ archive_length = 0
 
 service_code_pattern = re.compile ('([a-z0-9]+)-*([a-z0-9\-]*)')
 
-def create_service_map ():
-    resp = requests.get ('https://status.aws.amazon.com/')
-    soup = BeautifulSoup (resp.text, 'html.parser')
-    for table in soup.find_all ('table', class_ = 'fullWidth'):
-        for tr in table.find_all ('tr'):
-            td = tr.find ('td', class_ = 'bb top pad8')
-            if td is not None:
-                linktd = tr.find ('td', class_ = 'bb center top')
-                if linktd is not None:
-                    linka = linktd.find ('a')
-                    service_name = td.text
-                    names = service_name.split (' (')
-                    service_name = str(names[0]).lower ()
-                    if len(names) > 1:
-                        region_name = str(names[1]).replace (')', '').lower ()
-                    service_code = linka['href'].replace ('rss', '').replace ('/', '').replace ('.', '').lower ()
-                    (service_code, region_code) = service_code_pattern.match (service_code).groups ()
+def create_region_service_map ():
+    resp = requests.get (AWS_SERVICE_URL)
+    svc_data = resp.json ()
 
-                    service_map[service_name] = service_code.lower ()
-                    if len(region_name) > 0:
-                        region_map[region_name] = region_code.lower ()
+    for svc_detail in svc_data:
+        service_name = svc_detail['service_name']
+        service_code = svc_detail['service'].split('-')[0]
+        service_map[service_name] = service_code
+
+        region_code = svc_detail['region_id'] if 'region_id' in svc_detail else None
+        region_name = svc_detail['region_name'] if 'region_name' in svc_detail else None
+        if region_name is not None and len(region_name) > 0:
+            region_map[region_name] = region_code
+
 
 def in_service_map (value):
     value = value.lower ()
@@ -60,7 +58,7 @@ def in_service_map (value):
 def print_service_map ():
     print ("Showing {} known services:".format (len(service_map)))
     print ("\tShort Name                     Long Name")
-    for k in service_map.keys ():
+    for k in sorted(service_map):
         print ("\t{} {}".format (service_map[k].ljust(30), k))
 
 def get_service_code (value):
@@ -78,7 +76,7 @@ def in_region_map (value):
 def print_region_map ():
     print ("Showing {} known regions:".format (len(region_map)))
     print ("\tRegion Name          Region Code")
-    for k in region_map.keys ():
+    for k in sorted(region_map):
         print ("\t{} {}".format (k.ljust(20), region_map[k]))
 
 def get_region_code (value):
@@ -113,7 +111,7 @@ def format_issue (issue):
         span = div.span
         span.extract ()
         timeline.append ((span.text.strip(), div.text.strip()))
-        eventDatetime = dateutil_parse (span.text.strip())
+        eventDatetime = dateutil_parse (span.text.strip(), tzinfos=timezone_info)
         if mintimestamp is None or eventDatetime < mintimestamp:
             mintimestamp = eventDatetime
         if maxtimestamp is None or eventDatetime > maxtimestamp:
@@ -182,7 +180,7 @@ def get_service_issues (service = None, region = None):
     return {'current': current, 'archived': archive}
 
 if __name__ == '__main__':
-    create_service_map ()
+    create_region_service_map ()
     refresh_issues ()
     print ("{0} known services and {1} regions".format (len(service_map), len(region_map)))
     print ("{} current issues, {} archived issues for {} days".format (len(current_issues), len(archived_issues), archive_length))
