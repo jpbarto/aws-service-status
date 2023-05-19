@@ -154,23 +154,24 @@ def refresh_issues ():
             if len(region_code) > 0:
                 service_region_code = f'{service_code}-{region_code}'
 
+
             if service_region_code in data:
-                for service_region_code in data:
-                    for event in data[service_region_code]:
-                        event['service_code'] = service_code
-                        event['region_code'] = region_code
+                print ("Service Region Key Found {}".format (service_region_code))
+                for event in data[service_region_code]:
+                    event['service_code'] = service_code
+                    event['region_code'] = region_code
 
-                        event_resolved = False
-                        for entry in event['event_log']:
-                            if entry['status'] == "0":
-                                event_resolved = True
+                    event_resolved = False
+                    for entry in event['event_log']:
+                        if entry['status'] == "0":
+                            event_resolved = True
 
-                        if event_resolved:
-                            if int (event['date']) < oldest_timestamp:
-                                oldest_timestamp = int (event['date'])
-                            archived_issues.append (format_issue (event))
-                        else:
-                            current_issues.append (format_issue (event))
+                    if event_resolved:
+                        if int (event['date']) < oldest_timestamp:
+                            oldest_timestamp = int (event['date'])
+                        archived_issues.append (format_issue (event))
+                    else:
+                        current_issues.append (format_issue (event))
 
     archive_length = int ((time () - oldest_timestamp) / (24 * 60 * 60))
     logger.info ("Retrieved issues spanning {} days".format (archive_length))
