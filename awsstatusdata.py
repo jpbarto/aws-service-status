@@ -156,7 +156,6 @@ def refresh_issues ():
 
 
             if service_region_code in data:
-                print ("Service Region Key Found {}".format (service_region_code))
                 for event in data[service_region_code]:
                     event['service_code'] = service_code
                     event['region_code'] = region_code
