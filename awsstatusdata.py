@@ -25,8 +25,8 @@ timezone_info = {"PST": PACIFIC, "PDT": PACIFIC}
 logger = logging.getLogger('AWSStatusSkill')
 logger.setLevel (logging.DEBUG)
 
-AWS_DATA_URL = 'https://status.aws.amazon.com/data.json'
-AWS_SERVICE_URL = 'https://status.aws.amazon.com/services.json'
+AWS_DATA_URL = 'https://history-events-eu-west-1-prod.s3.amazonaws.com/historyevents.json'
+AWS_SERVICE_URL = 'https://d3s31nlw3sm5l8.cloudfront.net/services.json'
 
 current_issues = []
 archived_issues = []
@@ -40,13 +40,19 @@ def create_region_service_map ():
     resp = requests.get (AWS_SERVICE_URL)
     svc_data = resp.json ()
 
+    region_map['Global'] = ''
+
     for svc_detail in svc_data:
         service_name = svc_detail['service_name']
-        service_code = svc_detail['service'].split('-')[0]
-        service_map[service_name] = service_code
+        service_code = svc_detail['service']
 
         region_code = svc_detail['region_id'] if 'region_id' in svc_detail else None
         region_name = svc_detail['region_name'] if 'region_name' in svc_detail else None
+
+        if region_code is not None and len (region_code) > 0:
+            service_code = service_code.replace(f'-{region_code}', '')
+
+        service_map[service_name] = service_code
         if region_name is not None and len(region_name) > 0:
             region_map[region_name] = region_code
 
@@ -61,13 +67,19 @@ def print_service_map ():
     for k in sorted(service_map):
         print ("\t{} {}".format (service_map[k].ljust(30), k))
 
+def get_service_name (value):
+    if value is None:
+        raise ValueError ('Specified value is empty')
+    keys = [k for k, v in service_map.items() if v == value]
+    return keys[0]
+
 def get_service_code (value):
     value = str(value).lower ()
     if value in service_map:
         return service_map[value]
     if value in service_map.values ():
         return value 
-    raise ValueError ('Specified value not foundin map')
+    raise ValueError ('Specified value not found in map')
 
 def in_region_map (value):
     return value in region_map or value in region_map.values ()
@@ -78,6 +90,12 @@ def print_region_map ():
     for k in sorted(region_map):
         print ("\t{} {}".format (k.ljust(20), region_map[k]))
 
+def get_region_name (value):
+    if value is None:
+        raise ValueError ('Specified value is empty')
+    keys = [k for k, v in region_map.items() if v == value]
+    return keys[0]
+
 def get_region_code (value):
     if value in region_map:
         return region_map[value]
@@ -86,36 +104,30 @@ def get_region_code (value):
     raise ValueError ('Specified value not found in map')
 
 def format_issue (issue):
-    service_name = issue['service_name']
-    region_name = ''
-    try:
-        names = issue['service_name'].split (" (")
-        service_name = names[0]
-        if len(names) > 1:
-            region_name = names[1].replace (')', '')
-    except:
-        print ("Error pattern parsing {0}".format (issue['service_name']))
+    service_code = issue['service_code']
+    region_code = issue['region_code']
 
-    (service_code, region_code) = service_code_pattern.match (issue['service']).groups ()
-    summary = issue['summary']
+    # (service_code, region_code) = service_code_pattern.match (issue['service']).groups ()
+    event_log = issue['event_log']
+    summary = event_log[0]['summary']
     unixdate = int(issue['date'])
     utcdate = datetime.utcfromtimestamp(unixdate).strftime('%Y-%m-%d %H:%M:%S')
-    description = BeautifulSoup (issue['description'], 'html.parser').get_text ()
     timeline = []
-    soup = BeautifulSoup (issue['description'], 'html.parser')
     mintimestamp = None
     maxtimestamp = None
-    for div in soup.find_all('div'):
-        span = div.span
-        span.extract ()
-        timeline.append ((span.text.strip(), div.text.strip()))
-        eventDatetime = dateutil_parse (span.text.strip(), tzinfos=timezone_info)
-        if mintimestamp is None or eventDatetime < mintimestamp:
-            mintimestamp = eventDatetime
-        if maxtimestamp is None or eventDatetime > maxtimestamp:
-            maxtimestamp = eventDatetime
-    duration = int(maxtimestamp.timestamp () - mintimestamp.timestamp ())/60
+    for event in event_log:
+        event_timestamp = event['timestamp']
+        dtstamp = datetime.utcfromtimestamp(event_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        timeline.append ((dtstamp, event['message']))
+        if mintimestamp is None or event_timestamp < mintimestamp:
+            mintimestamp = event_timestamp
+        if maxtimestamp is None or event_timestamp > maxtimestamp:
+            maxtimestamp = event_timestamp
 
+    duration = int(maxtimestamp - mintimestamp)/60
+
+    service_name = get_service_name (service_code)
+    region_name = get_region_name (region_code)
     return {'service_name': service_name,
             'service_code': service_code,
             'region_name': region_name,
@@ -123,7 +135,7 @@ def format_issue (issue):
             'summary': summary,
             'timestamp': unixdate,
             'date': utcdate,
-            'description': description,
+            'description': 'DEPRECATED',
             'timeline': timeline,
             'duration_mins': duration}
 
@@ -133,19 +145,32 @@ def refresh_issues ():
     resp = requests.get (AWS_DATA_URL)
     data = resp.json ()
 
-    current = data['current']
-    archive = data['archive']
-
     current_issues.clear ()
-    for issue in current:
-        current_issues.append (format_issue (issue))
-
-    oldest_timestamp = int (time ())
     archived_issues.clear ()
-    for issue in archive:
-        if int (issue['date']) < oldest_timestamp:
-            oldest_timestamp = int (issue['date'])
-        archived_issues.append (format_issue (issue))
+    oldest_timestamp = int (time ())
+    for service_code in service_map.values():
+        for region_code in region_map.values ():
+            service_region_code = service_code
+            if len(region_code) > 0:
+                service_region_code = f'{service_code}-{region_code}'
+
+            if service_region_code in data:
+                for service_region_code in data:
+                    for event in data[service_region_code]:
+                        event['service_code'] = service_code
+                        event['region_code'] = region_code
+
+                        event_resolved = False
+                        for entry in event['event_log']:
+                            if entry['status'] == "0":
+                                event_resolved = True
+
+                        if event_resolved:
+                            if int (event['date']) < oldest_timestamp:
+                                oldest_timestamp = int (event['date'])
+                            archived_issues.append (format_issue (event))
+                        else:
+                            current_issues.append (format_issue (event))
 
     archive_length = int ((time () - oldest_timestamp) / (24 * 60 * 60))
     logger.info ("Retrieved issues spanning {} days".format (archive_length))
